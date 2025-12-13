@@ -1,0 +1,17 @@
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-and-push:
+    runs-on: self-host
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build and push backend Docker image
+        run: |
+          docker buildx build --progress plain --push --no-cache \
+            --file Dockerfile \
+            --tag git.shailesh.live/shailesh/qbt-atomations:${{ env.FORGEJO_SHA }} \
+            --tag git.shailesh.live/shailesh/qbt-atomations:latest \
+            .

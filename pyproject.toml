@@ -11,5 +11,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "nuitka>=2.8.9",
     "ruff>=0.14.9",
 ]
