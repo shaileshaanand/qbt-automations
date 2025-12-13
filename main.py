@@ -114,7 +114,7 @@ if __name__ == "__main__":
         try:
             qbt_client.auth_log_in()
             logging.info("Successfully logged in to qBittorrent")
-            schedule.every(5).minutes.do(main, qbt_client=qbt_client)
+            schedule.every(int(os.getenv("QBT_INTERVAL",5))).minutes.do(main, qbt_client=qbt_client)
             while True:
                 schedule.run_pending()
                 logging.getLogger().handlers[0].flush()
