@@ -99,6 +99,7 @@ def main(qbt_client: Client):
 
 
 if __name__ == "__main__":
+    print("Starting qBittorrent automation script...")
     conn_info = dict(
         host=os.getenv("QBITTORRENT_HOST", "localhost"),
         port=int(os.getenv("QBITTORRENT_PORT", 8080)),
