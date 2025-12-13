@@ -12,6 +12,6 @@ jobs:
         run: |
           docker buildx build --progress plain --push --no-cache \
             --file Dockerfile \
-            --tag git.shailesh.live/shailesh/qbt-atomations:${{ env.FORGEJO_SHA }} \
-            --tag git.shailesh.live/shailesh/qbt-atomations:latest \
+            --tag git.shailesh.live/shailesh/qbt-automations:${{ env.FORGEJO_SHA }} \
+            --tag git.shailesh.live/shailesh/qbt-automations:latest \
             .
