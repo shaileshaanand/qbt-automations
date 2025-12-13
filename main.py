@@ -108,6 +108,7 @@ if __name__ == "__main__":
     with qbittorrentapi.Client(**conn_info) as qbt_client:
         try:
             qbt_client.auth_log_in()
+            print("Successfully logged in to qBittorrent")
             schedule.every(5).minutes.do(main, qbt_client=qbt_client)
             while True:
                 schedule.run_pending()
