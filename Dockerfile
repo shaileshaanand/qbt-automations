@@ -1,14 +1,10 @@
-FROM python:3.13-slim AS build
+FROM python:3.13-alpine AS build
 
 # install uv
 RUN pip install --no-cache-dir uv
 
 # install patchelf
-RUN apt-get update && \
-    apt-get install -y patchelf gcc && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean && \
-    apt-get autoremove -y
+RUN apk add --no-cache gcc musl-dev python3-dev patchelf
 
 WORKDIR /app
 COPY pyproject.toml .
@@ -22,7 +18,7 @@ RUN uv run python -m nuitka \
     --output-dir=build \
     --output-filename=qb-automations
 
-FROM gcr.io/distroless/base
+FROM alpine:latest
 
 WORKDIR /app
 
