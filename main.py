@@ -117,6 +117,7 @@ if __name__ == "__main__":
             schedule.every(5).minutes.do(main, qbt_client=qbt_client)
             while True:
                 schedule.run_pending()
+                logging.getLogger().handlers[0].flush()
                 time.sleep(1)  # wait one minute
         except qbittorrentapi.LoginFailed as e:
             logging.error(f"Login failed: {e}")
