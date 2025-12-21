@@ -29,13 +29,14 @@ def is_private_torrent(torrent: TorrentDictionary) -> bool:
     return is_private
 
 
-def set_private_public_tags(qbt_client: Client):
+def set_private_public_tags(qbt_client: Client) -> list[str]:
+    changes = []
     create_private_and_public_tag_if_not_exists(qbt_client)
     try:
         qbt_client.auth_log_in()
     except qbittorrentapi.LoginFailed as e:
         logging.error(f"Login failed: {e}")
-        return
+        return []
     torrents = qbt_client.torrents_info()
     for torrent in torrents:
         logging.debug(
@@ -46,17 +47,26 @@ def set_private_public_tags(qbt_client: Client):
         if is_private:
             if "private" not in tags:
                 torrent.add_tags(tags="private")
-                logging.info(f"Added 'private' tag to torrent: {torrent.name}")
+                msg = f"Added 'private' tag to torrent: {torrent.name}"
+                logging.info(msg)
+                changes.append(msg)
             if "public" in tags:
                 torrent.remove_tags(tags="public")
-                logging.info(f"Removed 'public' tag from torrent: {torrent.name}")
+                msg = f"Removed 'public' tag from torrent: {torrent.name}"
+                logging.info(msg)
+                changes.append(msg)
         else:
             if "public" not in tags:
                 torrent.add_tags(tags="public")
-                logging.info(f"Added 'public' tag to torrent: {torrent.name}")
+                msg = f"Added 'public' tag to torrent: {torrent.name}"
+                logging.info(msg)
+                changes.append(msg)
             if "private" in tags:
                 torrent.remove_tags(tags="private")
-                logging.info(f"Removed 'private' tag from torrent: {torrent.name}")
+                msg = f"Removed 'private' tag from torrent: {torrent.name}"
+                logging.info(msg)
+                changes.append(msg)
+    return changes
 
 
 def get_tags_list(torrent: TorrentDictionary) -> list:
@@ -66,7 +76,8 @@ def get_tags_list(torrent: TorrentDictionary) -> list:
     return []
 
 
-def set_public_tagged_torrent_upload_limit(qbt_client: Client):
+def set_public_tagged_torrent_upload_limit(qbt_client: Client) -> list[str]:
+    changes = []
     torrents = qbt_client.torrents_info()
     for torrent in torrents:
         tags = get_tags_list(torrent)
@@ -83,26 +94,36 @@ def set_public_tagged_torrent_upload_limit(qbt_client: Client):
             if added_date < one_year_ago:
                 if torrent.up_limit != public_upload_limit_1y:
                     torrent.set_upload_limit(limit=public_upload_limit_1y)
-                    logging.info(
-                        f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit_1y}"
-                    )
+                    msg = f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit_1y}"
+                    logging.info(msg)
+                    changes.append(msg)
             elif added_date < thirty_days_ago:
                 if torrent.up_limit != public_upload_limit_30d:
                     torrent.set_upload_limit(limit=public_upload_limit_30d)
-                    logging.info(
-                        f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit_30d}"
-                    )
+                    msg = f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit_30d}"
+                    logging.info(msg)
+                    changes.append(msg)
             else:
                 if torrent.up_limit != public_upload_limit_new:
                     torrent.set_upload_limit(limit=public_upload_limit_new)
-                    logging.info(
-                        f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit_new}"
-                    )
+                    msg = f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit_new}"
+                    logging.info(msg)
+                    changes.append(msg)
+    return changes
 
 
 def main(qbt_client: Client):
-    set_private_public_tags(qbt_client)
-    set_public_tagged_torrent_upload_limit(qbt_client)
+    tag_changes = set_private_public_tags(qbt_client)
+    limit_changes = set_public_tagged_torrent_upload_limit(qbt_client)
+
+    all_changes = tag_changes + limit_changes
+
+    if all_changes:
+        logging.info("--- Run Summary ---")
+        logging.info(f"Total changes: {len(all_changes)}")
+        for change in all_changes:
+            logging.info(f"- {change}")
+        logging.info("-------------------")
 
 
 if __name__ == "__main__":
