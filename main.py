@@ -7,7 +7,10 @@ import schedule
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 
 def create_private_and_public_tag_if_not_exists(qbt_client: Client):
@@ -35,7 +38,7 @@ def set_private_public_tags(qbt_client: Client):
         return
     torrents = qbt_client.torrents_info()
     for torrent in torrents:
-        logging.info(
+        logging.debug(
             f"Name: {torrent.name}, Size: {torrent.size}, Progress: {torrent.progress * 100:.2f}%"
         )
         tags = get_tags_list(torrent)
@@ -73,7 +76,7 @@ def set_public_tagged_torrent_upload_limit(qbt_client: Client):
         added_date = datetime.fromtimestamp(torrent.info.added_on)
         thirty_days_ago = datetime.now() - timedelta(days=30)
         one_year_ago = datetime.now() - timedelta(days=365)
-        logging.info(
+        logging.debug(
             f"Torrent: {torrent.name}, Added on: {added_date}, Tags: {tags}, Upload limit: {torrent.up_limit} KB/s"
         )
         if "public" in tags:
