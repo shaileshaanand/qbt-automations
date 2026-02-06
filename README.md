@@ -9,6 +9,7 @@ A lightweight, containerized Python automation tool for managing qBittorrent. It
     *   **New (< 30 days):** 500 KB/s
     *   **Medium (30 days - 1 year):** 200 KB/s
     *   **Old (> 1 year):** 50 KB/s
+*   **Force Resume:** Automatically force-resumes all torrents to bypass queue limits, unless they are explicitly tagged as `paused`.
 *   **Scheduled Execution:** Runs automatically at a configurable interval (default: every 5 minutes).
 *   **Optimized Performance:** Uses [Nuitka](https://nuitka.net/) to compile the Python code into a standalone C binary, resulting in faster startup, lower memory usage, and a smaller container footprint compared to standard Python images.
 *   **Dockerized:** Built as a standalone, dependency-free Alpine container using Nuitka for minimal footprint.

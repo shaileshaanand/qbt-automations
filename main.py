@@ -13,14 +13,13 @@ logging.basicConfig(
 )
 
 
-def create_private_and_public_tag_if_not_exists(qbt_client: Client):
+def ensure_required_tags_exist(qbt_client: Client):
     tags = qbt_client.torrent_tags.tags
-    if "private" not in tags:
-        qbt_client.torrent_tags.create_tags(tags="private")
-        logging.info("Created 'private' tag")
-    if "public" not in tags:
-        qbt_client.torrent_tags.create_tags(tags="public")
-        logging.info("Created 'public' tag")
+    required_tags = ["private", "public", "paused"]
+    for tag in required_tags:
+        if tag not in tags:
+            qbt_client.torrent_tags.create_tags(tags=tag)
+            logging.info(f"Created '{tag}' tag")
 
 
 def is_private_torrent(torrent: TorrentDictionary) -> bool:
@@ -31,7 +30,6 @@ def is_private_torrent(torrent: TorrentDictionary) -> bool:
 
 def set_private_public_tags(qbt_client: Client) -> list[str]:
     changes = []
-    create_private_and_public_tag_if_not_exists(qbt_client)
     try:
         qbt_client.auth_log_in()
     except qbittorrentapi.LoginFailed as e:
@@ -112,11 +110,30 @@ def set_public_tagged_torrent_upload_limit(qbt_client: Client) -> list[str]:
     return changes
 
 
+def force_resume_torrents(qbt_client: Client) -> list[str]:
+    changes = []
+    torrents = qbt_client.torrents_info()
+    for torrent in torrents:
+        tags = get_tags_list(torrent)
+        if "paused" in tags:
+            continue
+
+        if torrent.state not in ["forcedUP", "forcedDL"]:
+            # force_start=True will force resume the torrent
+            torrent.set_force_start(value=True)
+            msg = f"Force resumed torrent: {torrent.name}"
+            logging.info(msg)
+            changes.append(msg)
+    return changes
+
+
 def main(qbt_client: Client):
+    ensure_required_tags_exist(qbt_client)
     tag_changes = set_private_public_tags(qbt_client)
     limit_changes = set_public_tagged_torrent_upload_limit(qbt_client)
+    resume_changes = force_resume_torrents(qbt_client)
 
-    all_changes = tag_changes + limit_changes
+    all_changes = tag_changes + limit_changes + resume_changes
 
     if all_changes:
         logging.info("--- Run Summary ---")
