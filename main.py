@@ -110,20 +110,30 @@ def set_public_tagged_torrent_upload_limit(qbt_client: Client) -> list[str]:
     return changes
 
 
-def force_resume_torrents(qbt_client: Client) -> list[str]:
+def enforce_torrent_states(qbt_client: Client) -> list[str]:
     changes = []
     torrents = qbt_client.torrents_info()
     for torrent in torrents:
         tags = get_tags_list(torrent)
         if "paused" in tags:
-            continue
-
-        if torrent.state not in ["forcedUP", "forcedDL"]:
-            # force_start=True will force resume the torrent
-            torrent.set_force_start(value=True)
-            msg = f"Force resumed torrent: {torrent.name}"
-            logging.info(msg)
-            changes.append(msg)
+            # If tagged paused, ensure it is paused
+            # qBittorrent active states usually do not start with "paused"
+            if not (
+                torrent.state.startswith("paused")
+                or torrent.state.startswith("stopped")
+            ):
+                torrent.pause()
+                msg = f"Paused torrent (tagged 'paused'): {torrent.name}"
+                logging.info(msg)
+                changes.append(msg)
+        else:
+            # If not tagged paused, ensure it is force resumed
+            if torrent.state not in ["forcedUP", "forcedDL"]:
+                # force_start=True will force resume the torrent
+                torrent.set_force_start(value=True)
+                msg = f"Force resumed torrent: {torrent.name}"
+                logging.info(msg)
+                changes.append(msg)
     return changes
 
 
@@ -131,7 +141,7 @@ def main(qbt_client: Client):
     ensure_required_tags_exist(qbt_client)
     tag_changes = set_private_public_tags(qbt_client)
     limit_changes = set_public_tagged_torrent_upload_limit(qbt_client)
-    resume_changes = force_resume_torrents(qbt_client)
+    resume_changes = enforce_torrent_states(qbt_client)
 
     all_changes = tag_changes + limit_changes + resume_changes
 
@@ -155,7 +165,9 @@ if __name__ == "__main__":
         try:
             qbt_client.auth_log_in()
             logging.info("Successfully logged in to qBittorrent")
-            schedule.every(int(os.getenv("QBT_INTERVAL",5))).minutes.do(main, qbt_client=qbt_client)
+            schedule.every(int(os.getenv("QBT_INTERVAL", 5))).minutes.do(
+                main, qbt_client=qbt_client
+            )
             while True:
                 schedule.run_pending()
                 logging.getLogger().handlers[0].flush()
