@@ -9,6 +9,7 @@ A lightweight, containerized Python automation tool for managing qBittorrent. It
     *   **New (< 30 days):** 500 KB/s
     *   **Medium (30 days - 1 year):** 200 KB/s
     *   **Old (> 1 year):** 50 KB/s
+*   **Stop Old Public Torrents:** Automatically pauses public torrents older than a configurable threshold (default: 10 days) to free up resources.
 *   **Force Resume:** Automatically force-resumes all torrents to bypass queue limits, unless they are explicitly tagged as `paused`.
 *   **Scheduled Execution:** Runs automatically at a configurable interval (default: every 5 minutes).
 *   **Optimized Performance:** Uses [Nuitka](https://nuitka.net/) to compile the Python code into a standalone C binary, resulting in faster startup, lower memory usage, and a smaller container footprint compared to standard Python images.
@@ -46,6 +47,7 @@ All configuration is handled via environment variables:
 | `QBITTORRENT_PASSWORD` | `adminadmin` | Your WebUI password. |
 | `QBT_INTERVAL` | `5` | How often (in minutes) the automation runs. |
 | `LOG_LEVEL` | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
+| `PUBLIC_TORRENT_STOP_DAYS` | `10` | Age threshold (in days) after which public torrents are stopped. |
 
 ## Development
 
@@ -63,7 +65,7 @@ To run or modify the script locally:
 
 3.  **Build the Docker image:**
     ```bash
-    docker build -t qb-automations .
+    docker buildx build -t qb-automations .
     ```
 
 ## License

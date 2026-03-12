@@ -110,6 +110,27 @@ def set_public_tagged_torrent_upload_limit(qbt_client: Client) -> list[str]:
     return changes
 
 
+def stop_old_public_torrents(qbt_client: Client) -> list[str]:
+    changes = []
+    stop_days = int(os.getenv("PUBLIC_TORRENT_STOP_DAYS", 10))
+    torrents = qbt_client.torrents_info()
+    cutoff_date = datetime.now() - timedelta(days=stop_days)
+    for torrent in torrents:
+        tags = get_tags_list(torrent)
+        if "public" in tags:
+            added_date = datetime.fromtimestamp(torrent.info.added_on)
+            if added_date < cutoff_date:
+                if not (
+                    torrent.state.startswith("paused")
+                    or torrent.state.startswith("stopped")
+                ):
+                    torrent.pause()
+                    msg = f"Stopped old public torrent (> {stop_days} days): {torrent.name}"
+                    logging.info(msg)
+                    changes.append(msg)
+    return changes
+
+
 def enforce_torrent_states(qbt_client: Client) -> list[str]:
     changes = []
     torrents = qbt_client.torrents_info()
@@ -141,9 +162,10 @@ def main(qbt_client: Client):
     ensure_required_tags_exist(qbt_client)
     tag_changes = set_private_public_tags(qbt_client)
     limit_changes = set_public_tagged_torrent_upload_limit(qbt_client)
+    stop_changes = stop_old_public_torrents(qbt_client)
     resume_changes = enforce_torrent_states(qbt_client)
 
-    all_changes = tag_changes + limit_changes + resume_changes
+    all_changes = tag_changes + limit_changes + stop_changes + resume_changes
 
     if all_changes:
         logging.info("--- Run Summary ---")
