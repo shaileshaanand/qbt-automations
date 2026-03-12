@@ -187,6 +187,7 @@ if __name__ == "__main__":
         try:
             qbt_client.auth_log_in()
             logging.info("Successfully logged in to qBittorrent")
+            main(qbt_client)
             schedule.every(int(os.getenv("QBT_INTERVAL", 5))).minutes.do(
                 main, qbt_client=qbt_client
             )
