@@ -125,6 +125,7 @@ def stop_old_public_torrents(qbt_client: Client) -> list[str]:
                     or torrent.state.startswith("stopped")
                 ):
                     torrent.pause()
+                    torrent.add_tags(tags="paused")
                     msg = f"Stopped old public torrent (> {stop_days} days): {torrent.name}"
                     logging.info(msg)
                     changes.append(msg)
