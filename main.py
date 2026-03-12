@@ -77,36 +77,18 @@ def get_tags_list(torrent: TorrentDictionary) -> list:
 def set_public_tagged_torrent_upload_limit(qbt_client: Client) -> list[str]:
     changes = []
     torrents = qbt_client.torrents_info()
+    public_upload_limit = 10 * 1000  # 10 KB/s
     for torrent in torrents:
         tags = get_tags_list(torrent)
-        public_upload_limit_30d = 200 * 1000
-        public_upload_limit_1y = 50 * 1000
-        public_upload_limit_new = 500 * 1000
-        added_date = datetime.fromtimestamp(torrent.info.added_on)
-        thirty_days_ago = datetime.now() - timedelta(days=30)
-        one_year_ago = datetime.now() - timedelta(days=365)
         logging.debug(
-            f"Torrent: {torrent.name}, Added on: {added_date}, Tags: {tags}, Upload limit: {torrent.up_limit} KB/s"
+            f"Torrent: {torrent.name}, Tags: {tags}, Upload limit: {torrent.up_limit} B/s"
         )
         if "public" in tags:
-            if added_date < one_year_ago:
-                if torrent.up_limit != public_upload_limit_1y:
-                    torrent.set_upload_limit(limit=public_upload_limit_1y)
-                    msg = f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit_1y}"
-                    logging.info(msg)
-                    changes.append(msg)
-            elif added_date < thirty_days_ago:
-                if torrent.up_limit != public_upload_limit_30d:
-                    torrent.set_upload_limit(limit=public_upload_limit_30d)
-                    msg = f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit_30d}"
-                    logging.info(msg)
-                    changes.append(msg)
-            else:
-                if torrent.up_limit != public_upload_limit_new:
-                    torrent.set_upload_limit(limit=public_upload_limit_new)
-                    msg = f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit_new}"
-                    logging.info(msg)
-                    changes.append(msg)
+            if torrent.up_limit != public_upload_limit:
+                torrent.set_upload_limit(limit=public_upload_limit)
+                msg = f"Updated upload limit for torrent: {torrent.name} to {public_upload_limit // 1000} KB/s"
+                logging.info(msg)
+                changes.append(msg)
     return changes
 
 
