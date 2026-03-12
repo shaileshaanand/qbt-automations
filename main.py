@@ -110,47 +110,49 @@ def set_public_tagged_torrent_upload_limit(qbt_client: Client) -> list[str]:
     return changes
 
 
-def stop_old_public_torrents(qbt_client: Client) -> list[str]:
-    changes = []
-    stop_days = int(os.getenv("PUBLIC_TORRENT_STOP_DAYS", 10))
-    torrents = qbt_client.torrents_info()
+def is_old_public_torrent(torrent: TorrentDictionary, stop_days: int) -> bool:
+    """Check if a torrent is a public torrent older than the specified days."""
+    tags = get_tags_list(torrent)
+    if "public" not in tags:
+        return False
     cutoff_date = datetime.now() - timedelta(days=stop_days)
-    for torrent in torrents:
-        tags = get_tags_list(torrent)
-        if "public" in tags:
-            added_date = datetime.fromtimestamp(torrent.info.added_on)
-            if added_date < cutoff_date:
-                if not (
-                    torrent.state.startswith("paused")
-                    or torrent.state.startswith("stopped")
-                ):
-                    torrent.pause()
-                    torrent.add_tags(tags="paused")
-                    msg = f"Stopped old public torrent (> {stop_days} days): {torrent.name}"
-                    logging.info(msg)
-                    changes.append(msg)
-    return changes
+    added_date = datetime.fromtimestamp(torrent.info.added_on)
+    return added_date < cutoff_date
 
 
 def enforce_torrent_states(qbt_client: Client) -> list[str]:
     changes = []
+    stop_days = int(os.getenv("PUBLIC_TORRENT_STOP_DAYS", 10))
     torrents = qbt_client.torrents_info()
     for torrent in torrents:
         tags = get_tags_list(torrent)
-        if "paused" in tags:
-            # If tagged paused, ensure it is paused
-            # qBittorrent active states usually do not start with "paused"
-            if not (
-                torrent.state.startswith("paused")
-                or torrent.state.startswith("stopped")
-            ):
+        # Check if torrent should be paused (tagged or old public torrent)
+        should_be_paused = "paused" in tags or is_old_public_torrent(torrent, stop_days)
+        is_paused = (
+            torrent.state.startswith("paused")
+            or torrent.state.startswith("stopped")
+            or torrent.state == "missingFiles"
+        )
+        logging.debug(
+            f"Torrent: {torrent.name}, State: {torrent.state}, "
+            f"Should be paused: {should_be_paused}, Is paused: {is_paused}"
+        )
+        if should_be_paused:
+            # Ensure torrent is paused
+            if not is_paused:
                 torrent.pause()
-                msg = f"Paused torrent (tagged 'paused'): {torrent.name}"
+                reason = (
+                    "old public torrent"
+                    if is_old_public_torrent(torrent, stop_days)
+                    else "tagged 'paused'"
+                )
+                msg = f"Paused torrent ({reason}): {torrent.name}"
                 logging.info(msg)
                 changes.append(msg)
         else:
-            # If not tagged paused, ensure it is force resumed
-            if torrent.state not in ["forcedUP", "forcedDL"]:
+            # If not tagged paused and not old public, ensure it is force resumed
+            # Skip torrents with missing files - can't force resume them
+            if torrent.state not in ["forcedUP", "forcedDL", "missingFiles"]:
                 # force_start=True will force resume the torrent
                 torrent.set_force_start(value=True)
                 msg = f"Force resumed torrent: {torrent.name}"
@@ -163,10 +165,9 @@ def main(qbt_client: Client):
     ensure_required_tags_exist(qbt_client)
     tag_changes = set_private_public_tags(qbt_client)
     limit_changes = set_public_tagged_torrent_upload_limit(qbt_client)
-    stop_changes = stop_old_public_torrents(qbt_client)
-    resume_changes = enforce_torrent_states(qbt_client)
+    state_changes = enforce_torrent_states(qbt_client)
 
-    all_changes = tag_changes + limit_changes + stop_changes + resume_changes
+    all_changes = tag_changes + limit_changes + state_changes
 
     if all_changes:
         logging.info("--- Run Summary ---")
