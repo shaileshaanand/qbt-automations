@@ -102,14 +102,24 @@ def is_old_public_torrent(torrent: TorrentDictionary, stop_days: int) -> bool:
     return added_date < cutoff_date
 
 
+def is_old_tv_whisparr_torrent(torrent: TorrentDictionary) -> bool:
+    """Check if a tv-whisparr torrent is older than 10 days."""
+    if torrent.category != "tv-whisparr":
+        return False
+    cutoff_date = datetime.now() - timedelta(days=10)
+    added_date = datetime.fromtimestamp(torrent.info.added_on)
+    return added_date < cutoff_date
+
+
 def enforce_torrent_states(qbt_client: Client) -> list[str]:
     changes = []
     stop_days = int(os.getenv("PUBLIC_TORRENT_STOP_DAYS", 10))
     torrents = qbt_client.torrents_info()
     for torrent in torrents:
         tags = get_tags_list(torrent)
-        # Check if torrent should be paused (tagged or old public torrent)
-        should_be_paused = "paused" in tags or is_old_public_torrent(torrent, stop_days)
+        is_old_public = is_old_public_torrent(torrent, stop_days)
+        is_old_tv_whisparr = is_old_tv_whisparr_torrent(torrent)
+        should_be_paused = "paused" in tags or is_old_public or is_old_tv_whisparr
         is_paused = (
             torrent.state.startswith("paused")
             or torrent.state.startswith("stopped")
@@ -125,8 +135,12 @@ def enforce_torrent_states(qbt_client: Client) -> list[str]:
                 torrent.pause()
                 reason = (
                     "old public torrent"
-                    if is_old_public_torrent(torrent, stop_days)
-                    else "tagged 'paused'"
+                    if is_old_public
+                    else (
+                        "tv-whisparr torrent older than 10 days"
+                        if is_old_tv_whisparr
+                        else "tagged 'paused'"
+                    )
                 )
                 msg = f"Paused torrent ({reason}): {torrent.name}"
                 logging.info(msg)

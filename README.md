@@ -10,6 +10,7 @@ A lightweight, containerized Python automation tool for managing qBittorrent. It
     *   **Medium (30 days - 1 year):** 200 KB/s
     *   **Old (> 1 year):** 50 KB/s
 *   **Stop Old Public Torrents:** Automatically pauses public torrents older than a configurable threshold (default: 10 days) to free up resources.
+*   **Stop Old Whisparr Torrents:** Automatically pauses torrents in the `tv-whisparr` category after 10 days.
 *   **Force Resume:** Automatically force-resumes all torrents to bypass queue limits, unless they are explicitly tagged as `paused`.
 *   **Scheduled Execution:** Runs automatically at a configurable interval (default: every 5 minutes).
 *   **Optimized Performance:** Uses [Nuitka](https://nuitka.net/) to compile the Python code into a standalone C binary, resulting in faster startup, lower memory usage, and a smaller container footprint compared to standard Python images.
